@@ -17,19 +17,20 @@ A P halmazra készített Delaunay-háromszögelés
 
 ### Lépések:
 
-1. Külső szuperstruktúra (háromszög) létrehozása, amely tartalmazza az összes bemeneti pontot.
-2. Véletlenszerű sorrendbe állítjuk a P pontokat.
-3. Minden pontot sorban beillesztünk:
-   - Megkeressük azt a háromszöget, amely tartalmazza a pontot.
-   - Ha **a pont belül van**:
-     - Az adott háromszöget három részre bontjuk.
-     - Új éleket hozunk létre a csúcspontból a háromszög csúcsai felé.
-     - Legalizáljuk az új éleket
-   - Ha **a pont egy élre esik**:
-     - Két háromszöget módosítunk.
-     - Új éleket húzunk a pontból a háromszögek harmadik csúcspontjához.
-     - Legalizáljuk a éleket
-4. A végső gráfból eltávolítjuk a szuperstruktúra pontjait és éleit.
+INPUT. P ponthalmaz, amely n darab (x,y) koordináta párokból áll.
+OUTPUT. Egy matplotlib grafikon, amely megrajzolja az algoritmus futása során létrehozott háromszögeket
+	Létrehozzuk a külső szuperstruktúrát, amely elég nagy ahhoz, hogy ne zavarja a pontok közötti háromszögelés legalitását
+	Véletlenszerű sorrendbe állítjuk a P ponthalmazt
+	Létrehozunk egy fa struktúrát (Directed Acyclic Graph), amelynek a gyökere lesz a szuperstruktúránk
+	A P ponthalmaz elemeit egyesével beszúrjuk a háromszögelésünkbe
+	Megvizsgáljuk, hogy a pontunk benne van-e a háromszögünkben a baricentrikus koordináták segítségével
+	Igen: Megvizsgáljuk, hogy a háromszögünk levél-e
+Igen: Megvizsgáljuk, hogy a háromszögünk tartalmazza e a belsejében a pontot 
+Igen: Beszúrjuk a pontot, három levélértéket kötünk a háromszöghöz, legalizáljuk az eredeti háromszög élet.
+Nem: A pontunk egy élen helyezkedik el, megkeressük az illeszkedő háromszöget, felosztjuk, létrehozzuk a leveleket, majd legalizáljuk az eredeti háromszögek éleit
+Nem:	Megvizsgáljuk a háromszögeink children listáját, rekurzíven újra meghívjuk a függvényt arra a children értékre, amelyben megtalálható a pont
+	Kiíratáskor végigfut a függvény a fán és megrajzolja az összes háromszöget. Vége.
+
 
 ---
 
