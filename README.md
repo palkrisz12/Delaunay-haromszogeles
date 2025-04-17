@@ -13,13 +13,14 @@ A projekt célja egy **Python nyelvű implementáció** készítése, amely **De
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  Az algoritmus leírás
+
   
 </head>
 <body>
 
 INPUT
 <p>P ponthalmaz, amely n darab (x,y) koordináta párokból áll.</p>
+
 
 OUTPUT
 <p>Egy matplotlib grafikon, amely megrajzolja az algoritmus futása során létrehozott háromszögeket</p>
