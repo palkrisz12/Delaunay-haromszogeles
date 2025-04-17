@@ -13,15 +13,15 @@ A projekt célja egy **Python nyelvű implementáció** készítése, amely **De
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Delaunay algoritmus leírás</title>
+  Az algoritmus leírás
   
 </head>
 <body>
 
-<h2>INPUT</h2>
+INPUT
 <p>P ponthalmaz, amely n darab (x,y) koordináta párokból áll.</p>
 
-<h2>OUTPUT</h2>
+OUTPUT
 <p>Egy matplotlib grafikon, amely megrajzolja az algoritmus futása során létrehozott háromszögeket</p>
 
 <ol>
