@@ -14,32 +14,7 @@ A projekt célja egy **Python nyelvű implementáció** készítése, amely **De
 <head>
   <meta charset="UTF-8">
   <title>Delaunay algoritmus leírás</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-      color: #24292e;
-      background-color: #ffffff;
-      max-width: 980px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-    h1, h2, h3 {
-      border-bottom: 1px solid #eaecef;
-      padding-bottom: .3em;
-    }
-    code {
-      background-color: #f6f8fa;
-      padding: .2em .4em;
-      border-radius: 3px;
-      font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
-      font-size: 85%;
-    }
-    ul, ol {
-      margin-left: 1.5em;
-    }
-  </style>
+  
 </head>
 <body>
 
