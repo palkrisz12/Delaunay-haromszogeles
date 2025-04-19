@@ -73,6 +73,11 @@ class TriangleNode:
         Maga a fa strukturank, alkalmazunk OOP elemeket is. A struktura segitsegevel nyomon kovetjuk a haromszogeinket
         Azert alkalmazzuk ezt a konkret strukturat, hogy felgyorsitsuk a keresest
     """
+    
+    all_leaf_triangles = set()
+    root_triangle = None
+    
+    
     def __init__(self, points=None):
         if points is None:
             raise ValueError("A nodenak szuksege van ertekekre - inicializalas")
@@ -80,10 +85,10 @@ class TriangleNode:
         if len(points) != 3:
             raise ValueError("A haromszognek pontosan 3 pontja van.")
             
-       
         self.points = points  # Minden TriangleNode level az inicializalaskor
         self.children = None  # Tehat nincsennek children nodejai
-        self.parent = None  # Inicializalaskor parent nodeot sem adunk meg, mivel szuksegunk lesz a root node megkulonboztetesere
+        
+
        
 
 
@@ -103,22 +108,19 @@ class TriangleNode:
             if not are_collinear(child.points[0], child.points[1], child.points[2]):
                 legit_children.append(child)
         
-        self.children = legit_children
+        self.children = new_children
         
-        #Az osszes megfelelo gyerekhez rendelunk szulot
-        for child in legit_children:   
-            child.parent = self
+        #Eltavolitjuk a levelek halmazabol a haromszogunket
+        TriangleNode.all_leaf_triangles.remove(self)
+        #Hozzaadjuk a levelek halmazahoz az uj haromszogeket
+        TriangleNode.all_leaf_triangles.update(set(legit_children))
+        
 
     def is_leaf(self):
         """Megvizsgaljuk a TriangleNodeot, hogy level e"""
         return self.children is None 
 
     
-    def get_all_leaves(self):
-        """A fuggveny visszaadja a fa egyik konkret aganak osszes levelet"""
-        if self.is_leaf():
-            return [self]
-        return [leaf for child in self.children for leaf in child.get_all_leaves()]
 
     def plot_leaves(self, ax=None, **kwargs):
         """PatchCollection alkalmazasaval megrajzoljuk az osszes haromszoget, amire szuksegunk van"""
@@ -144,32 +146,23 @@ class TriangleNode:
             """
             points = [a, b, c, p1, p2, p3]
             return len(points) != len(set(points))
-               
-        def get_all_needed_leaves_helper(TriangleNode, a, b, c):
-            """
-            Rekurzioval megkeressuk az osszes olyan levelet, amely megfelel a feltetelnek,
-            jelen esetben a levelek nem tartalmazhatnak pontot a szuperharomszogbol
-            """
-            if TriangleNode.is_leaf(): 
-                if any_points_equal(a, b, c, TriangleNode.points[0], TriangleNode.points[1], TriangleNode.points[2]) == False:
-                    return [TriangleNode]
-                return []
-            else:
-                leaves = []
-                for child in TriangleNode.children:
-                    leaves.extend(get_all_needed_leaves_helper(child, a, b ,c))
-                return leaves
         
-        def get_all_needed_leaves(root):
+        def get_all_needed_leaves():
             """
-            A fo fuggveny, amely gyakorlatilag fejleckent funkcional
-            """
-            a,b,c = root.points
-            return get_all_needed_leaves_helper(root, a,b,c)
-        
-        root = self._get_root()
-        leaves = get_all_needed_leaves(root)
+            Javitott verzio, mostmar szamon tartjuk a leveleket egy halmazban, hogy linearis idon belul keressunk
+            Ha szuksegunk van egy levelre a listabol szedjuk ki, tobbe nem jarjuk be a fat keresztul-kasul
 
+            """
+            a,b,c = TriangleNode.root_triangle.points
+            leaves = []
+            for l in TriangleNode.all_leaf_triangles:
+                if any_points_equal(a, b, c, l.points[0], l.points[1], l.points[2]) == False:
+                    leaves.append(l)
+            
+            return leaves
+        
+        
+        leaves =  get_all_needed_leaves()
         patches = [Polygon(leaf.points) for leaf in leaves]
         
         collection = PatchCollection(patches, **default_kwargs)
@@ -256,24 +249,14 @@ class TriangleNode:
    
     def find_adjacent_triangle(self, edge):
        """Megkeressuk egy konkret haromszog illeszkedo haromszoget"""
-       root = self._get_root()
-       leaves = root.get_all_leaves()
+
+       leaves = TriangleNode.all_leaf_triangles
        for l in leaves:
            if l is not self:
                if edge[0] in l.points and edge[1] in l.points:
                    return l
        return None
      
-
-     
-    def _get_root(self):
-        """Amikor a leveleket keressuk, mindig szuksegunk van a rootra, a fuggveny celja, 
-        hogy felmasszon a rootig"""
-        current = self
-        while current.parent is not None:
-            current = current.parent
-        return current
-   
     def search_third_point(self, edge):
         """
         Seged fuggveny, megkeresi a haromszoget alkoto harmadik pontot, vagyis azt amelyik nem alkotja a megfigyelt elet
@@ -355,13 +338,21 @@ class TriangleNode:
         triangle1.legalize_edge([a, c])
         triangle2.legalize_edge([b, c])
     
-    
-    
-    #A fuggveny megkeresi az adott haromszoget, majd ha a felteteleknek megfelel hozzadja
     def search_and_add(self, p):
         """
+        Kette bontottam a search_and_add fuggvenyt
+        A javitas lenyege, hogy csak egyszer szamoljuk ki a valaszt, ne tobbszor
+
+        """
+        answer = self.insideTriangle(p)
+        self.search_and_add_helper(p, answer)
+    
+    #A fuggveny megkeresi az adott haromszoget, majd ha a felteteleknek megfelel hozzadja
+    def search_and_add_helper(self, p, answer):
+        """
         Javitott kereses a faban,
-        Lekerjuk a pont es a haromszog viszonyat egymashoz kepest
+        Maga a valasz is resze a fuggvenynek, amit a for ciklusban kerdezunk meg, 
+        igy csupan egyszer tesszuk fel
         Ha benne van, megkerdezzuk, hogy level-e,
         Ha Level akkor beszurjuk a pontot, vagy a haromszog belsejebe, vagy egy el menten felbontjuk a haromszoget
         Ha nem level akkor atnezzuk a gyerekeket, egyesevel megkerdezzuk,
@@ -369,35 +360,60 @@ class TriangleNode:
         Igy nem kell az egesz fat bejarnunk, hanem eleg csupan az agak menten vegigsetalni
 
         """
-        answer = self.insideTriangle(p)
         if answer is not False:
-            #p is in this subtree
+            #p benne van a faban
             if self.is_leaf():
-                # exactly one of these will trigger:
+                # vagy egyik, vagy masik lefut
                 if answer is True:
                     self.add_point_inside(p)
                     return
                 else:
-                    # answer is an edge [v1,v2]
+                    # a valasz egy el
                     adj = self.find_adjacent_triangle(answer)
                     if adj:
                         self.add_point_edge(p, answer)
                         adj.add_point_edge(p, answer)
                         return
             else:
-                # internal node: just pass down to the one child that covers p
+                # internal node: a gyerekek ertekeit megvizsgaljuk
                 for child in self.children:
-                    if child.insideTriangle(p) is not False:
-                        child.search_and_add(p)
+                    answer_new = child.insideTriangle(p)
+                    if answer_new is not False:
+                        child.search_and_add_helper(p, answer_new)
                         return
     
         
-        
+    
+
+def Delaunay_Triangulation(points):
+    """
+    A fuggveny tulajdonkeppeni fejlece,
+    a bemeno ponthalmaz sorrendjet felkeveri, letreozza a szuperstrukturat,
+    majd a gyokeret,
+    vegul pedig egyesevel hozzaadja a pontjainkat a haromszogeleshez
+    Vegezetul bezarja a plotot, kiuriti a levelek halmazat, es a rootot is None ertekre allitja
+
+    """
+    random.shuffle(points)
+    triangle = compute_super_triangle(points)
+    root = TriangleNode(triangle)
+    TriangleNode.root_triangle = root
+    TriangleNode.all_leaf_triangles.add(root)
+    for p in points:
+        root.search_and_add(p)
+    
+    plt.figure(figsize=(8, 6))
+    root.plot_leaves()
+    plt.title("Delaunay-trianguláció")
+    plt.xlabel(str(len(points)) + " pontra")
+    plt.show()
+    plt.close()
+    TriangleNode.all_leaf_triangles.clear()
+    TriangleNode.root_triangle = None
 
 
 
-
-def generate_unique_integer_points(n, x_range=(0, 100), y_range=(0, 100)):
+def generate_unique_integer_points(n, x_range=(-100, 100), y_range=(-500, 500)):
     """
     Generalunk n darab egyedi integer koordinataju pontot egy megadott intervallumban, a pontok nincsennek garantalva, hogy altalanos helyzetben lesznek,
     viszont tobbe-kevesbe megfeleloen haromszogelhetoek
@@ -418,101 +434,20 @@ def generate_unique_integer_points(n, x_range=(0, 100), y_range=(0, 100)):
 
     return random.sample(all_points, n)
 
-"""
-A Delaunay-haromszogeles feltetelt ad egy altalanos pozicioban elhelyezkedo ponthalmaz haromszogelesehez,
-Akkor talalhato egy ponthalmaz altalanos pozicioban
-
-i. ha barmely megfigyelt negy pont sem talalhato ugyanazon a korvonalon,
-
-Ha teljesul a feltetel, akkor altalanos pozicioban van a haromszogelesunk, es megfelelo Delaunay-triangulaciot generalhatunk ra,
-a kovetkezo fuggveny egy ilyen altalanosan pozicioban levo ponthalmazt igyekszik generalni
-
-"""
 
 
-def are_cocircular(p1, p2, p3, p4):
-    """
-    Megvizsgaljuk, hogy negy pont ugyanarra a korvonalra esik-e
-    """
-    def det(a, b, c, d):
-        return (
-            a[0]*(b[1]*c[2] + b[2]*d[1] + c[1]*d[2] - c[2]*d[1] - b[1]*d[2] - c[1]*b[2])
-            - a[1]*(b[0]*c[2] + b[2]*d[0] + c[0]*d[2] - c[2]*d[0] - b[0]*d[2] - c[0]*b[2])
-            + a[2]*(b[0]*c[1] + b[1]*d[0] + c[0]*d[1] - c[1]*d[0] - b[0]*d[1] - c[0]*b[1])
-        )
-
-    def to_homogeneous(p):
-        x, y = p
-        return (x, y, x**2 + y**2)
-
-    m = [to_homogeneous(p) for p in [p1, p2, p3, p4]]
-    return det(m[0], m[1], m[2], m[3]) == 0
-
-import itertools
-
-def is_in_general_position(points):
-    """
-    Megvizsgaljuk, hogy a ponthalmazunk altalanos pozicioban van-e, vagyis nincs negy kocirkularis, elegge szamitas igenyes
-    feladat, viszont garantalt a helyes megoldas
-    """
-    # Kocirkularis negyesek kivizsgalasa
-    for quadruplet in itertools.combinations(points, 4):
-        if are_cocircular(*quadruplet):
-            return False
-
-    return True
-
-def generate_unique_random_points(n, x_range=(0, 100), y_range=(0, 100)):
-    """
-    A fuggveny pontokat general, amelyek csak akkor kerulnek bele a return listbe- ha altalanos pozicioban vannak,
-    meg inkabb szamitasigenyesebb feladat
 
 
-    Parameterek:
-        - x_range: (xmin, xmax)
-        - y_range: (ymin, ymax) 
-
-
-    """
-    points = set()  # Halmazokkal dolgozunk, mivel a halmazok csak egyedi elemeket tartalmazhatnak
-    while len(points) < n:
-        new_point = (random.randint(x_range[0], x_range[1]), random.randint(y_range[0], y_range[1]))
-        
-        temp_points = list(points) + [new_point]
-        
-        if is_in_general_position(temp_points):
-            points.add(new_point)  # Ha a pont megfelel a feltetelnek, hozzaadjuk a halmazunkhoz
-
-    return list(points)  
-
-
-def Delaunay_Triangulation(points):
-    """
-    A fuggveny tulajdonkeppeni fejlece,
-    a bemeno ponthalmaz sorrendjet felkeveri, letreozza a szuperstrukturat,
-    majd a gyokeret,
-    vegul pedig egyesevel hozzaadja a pontjainkat a haromszogeleshez
-
-    """
-    random.shuffle(points)
-    triangle = compute_super_triangle(points)
-    root = TriangleNode(triangle)
-    for p in points:
-        root.search_and_add(p)
-        
-    plt.figure(figsize=(8, 6))
-    root.plot_leaves()
-    plt.title("Delaunay-trianguláció")
-    plt.show()
+from Pontgeneralas import generate_unique_integer_points     
+    
         
 
 
 if __name__ == "__main__":
+        
+
+    Delaunay_Triangulation(generate_unique_integer_points(10000))
     
-    points = [(9, 10), (-1, -5), (2, 1), (-10, 10), (2, -3), (-7, 1), (4, 6), (9, -4), (1, -3), (-5, 5), (5, -7), (-3, 5)]
-    points = generate_unique_integer_points(50)
-    
-    Delaunay_Triangulation(points)
     
     
     
